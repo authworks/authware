@@ -1,7 +1,19 @@
-import { OAuth2Request, OAuth2Response } from '../server';
+import {
+  GrantType,
+  OAuth2Request,
+  OAuth2Response,
+  ResponseType,
+} from '../common';
 import { Grant } from './base';
 
 export class ImplicitGrant extends Grant {
+  canHandleResponseType(): ResponseType | false {
+    return ResponseType.TOKEN;
+  }
+
+  canHandleGrantType(): GrantType | false {
+    return false;
+  }
   // ===============Request==============
   // response_type
   //      REQUIRED.  Value MUST be set to "token".
@@ -69,16 +81,15 @@ export class ImplicitGrant extends Grant {
   // Location: http://example.com/cb#access_token=2YotnFZFEjr1zCsicMWpAA
   // &state=xyz&token_type=example&expires_in=3600
   authorize(request: OAuth2Request, response: OAuth2Response) {
-    const clientId = this.server.verifyClientId(request.query.client_id);
-    const redirectUri = this.server.verifyRedirectUri(
-      request.query.redirect_uri,
-    );
-    const scope = this.server.verifyScope(request.query.scope);
+    const client = this.server.verifyClient(request.query.client_id);
+    const clientId = client.clientId;
+    const redirectUri = client.verifyRedirectUri(request.query.redirect_uri);
+    const scope = client.verifyScope(request.query.scope);
     const state = request.query.state;
     response.redirect(redirectUri, {
-      access_token: this.server.generateToken(clientId, ''),
+      access_token: client.generateAccessToken(),
       token_type: 'Bearer',
-      expires_in: String(this.server.tokenExpires(request.query.clientId)),
+      expires_in: client.tokenExpires,
       scope,
       state,
     });

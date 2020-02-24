@@ -1,8 +1,20 @@
 import { parseUrl } from 'query-string';
-import { OAuth2Request, OAuth2Response } from '../server';
+import {
+  GrantType,
+  OAuth2Request,
+  OAuth2Response,
+  ResponseType,
+} from '../common';
 import { Grant } from './base';
 
 export class AuthorizationCodeGrant extends Grant {
+  canHandleResponseType(): ResponseType | false {
+    return ResponseType.CODE;
+  }
+
+  canHandleGrantType(): GrantType | false {
+    return GrantType.AUTHORIZATION_CODE;
+  }
   // ========== Request ===========
   // The client constructs the request URI by adding the following
   // parameters to the query component of the authorization endpoint URI
@@ -55,14 +67,13 @@ export class AuthorizationCodeGrant extends Grant {
   // Location: https://client.example.com/cb?code=SplxlOBeZQQYbYS6WxSbIA
   // &state=xyz
   authorize(request: OAuth2Request, response: OAuth2Response) {
-    const clientId = this.server.verifyClientId(request.query.client_id);
-    const redirectUri = this.server.verifyRedirectUri(
-      request.query.redirect_uri,
-    );
-    const scope = this.server.verifyScope(request.query.scope);
+    const client = this.server.verifyClient(request.query.client_id);
+    const clientId = client.clientId;
+    const redirectUri = client.verifyRedirectUri(request.query.redirect_uri);
+    const scope = client.verifyScope(request.query.scope);
     const state = request.query.state;
     response.redirect(redirectUri, {
-      code: this.server.generateToken(clientId, ''),
+      code: client.generateAuthorizationCode(),
       state,
     });
   }
@@ -115,18 +126,15 @@ export class AuthorizationCodeGrant extends Grant {
   // }
   token(request: OAuth2Request, response: OAuth2Response) {
     super.verifyTokenEndpointHttpMethod(request);
-    const clientId = this.server.verifyClientId(request.body.client_id);
-    const redirectUri = this.server.verifyRedirectUri(
-      request.body.redirect_uri,
-    );
-    const code = this.server.verifyAuthorizationCode(request.body.code);
-    const params = parseUrl(redirectUri).query;
+    const client = this.server.verifyClient(request.body.client_id);
+    const clientId = client.clientId;
+    const redirectUri = client.verifyRedirectUri(request.body.redirect_uri);
+    const code = client.verifyAuthorizationCode(request.body.code);
     response.sendJson({
-      access_token: this.server.generateToken(clientId, ''),
+      access_token: client.generateAccessToken(),
       token_type: 'Bearer',
-      expires_in: String(this.server.tokenExpires(request.query.clientId)),
-      refresh_token: '',
-      ...params,
+      expires_in: client.tokenExpires,
+      refresh_token: client.generateRefreshToken(),
     });
   }
 }

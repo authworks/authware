@@ -1,17 +1,27 @@
 import { ErrorName, OAuth2Error } from '../errors';
-import { OAuth2Request, OAuth2Response, OAuth2Server } from '../server';
+import {
+  GrantType,
+  OAuth2Request,
+  OAuth2Response,
+  ResponseType,
+} from '../common';
+import { OAuth2Server } from '../server';
 
 export abstract class Grant {
-  server: OAuth2Server;
+  server!: OAuth2Server;
+
+  enabledByServer(server: OAuth2Server) {
+    this.server = server;
+  }
+  abstract canHandleResponseType(): ResponseType | false;
+  abstract canHandleGrantType(): GrantType | false;
   verifyTokenEndpointHttpMethod(request: OAuth2Request) {
     if (request.method !== 'POST') {
       throw new OAuth2Error(ErrorName.ACCESS_DENIED);
     }
   }
+  extractClientCredentials() {}
 
-  constructor(server: OAuth2Server) {
-    this.server = server;
-  }
   abstract authorize(request: OAuth2Request, response: OAuth2Response): void;
 
   abstract token(request: OAuth2Request, response: OAuth2Response): void;

@@ -1,7 +1,20 @@
-import { OAuth2Request, OAuth2Response } from '../server';
+import {
+  GrantType,
+  OAuth2Request,
+  OAuth2Response,
+  ResponseType,
+} from '../common';
 import { Grant } from './base';
 
 export class ResourceOwnerPasswordCredentialsGrant extends Grant {
+  canHandleResponseType(): ResponseType | false {
+    return false;
+  }
+
+  canHandleGrantType(): false | GrantType {
+    return GrantType.PASSWORD;
+  }
+
   authorize(request: OAuth2Request, response: OAuth2Response) {
     throw new Error(
       'A bug: resource owner password credentials grant should not request authorization endpoint',
@@ -54,18 +67,17 @@ export class ResourceOwnerPasswordCredentialsGrant extends Grant {
   // }
   token(request: OAuth2Request, response: OAuth2Response) {
     super.verifyTokenEndpointHttpMethod(request);
-    const clientId = this.server.clientAuthentication.authenticateClient(
-      request,
-    );
+    const client = this.server.authenticateClient0(request);
+    const clientId = client.clientId;
     const username = request.body.username;
     const password = request.body.password;
-    // authenticate user/password TODO
-    const scope = this.server.verifyScope(request.body.scope);
+    this.server.authenticateResourceOwner(username, password);
+    const scope = client.verifyScope(request.body.scope);
     response.sendJson({
-      access_token: this.server.generateToken(clientId, username),
+      access_token: client.generateAccessToken(),
       token_type: 'Bearer',
-      expires_in: String(this.server.tokenExpires(request.query.clientId)),
-      refresh_token: '',
+      expires_in: client.tokenExpires,
+      refresh_token: client.generateRefreshToken(),
     });
   }
 }

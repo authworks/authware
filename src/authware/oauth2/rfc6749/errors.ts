@@ -1,62 +1,4 @@
 import { stringify } from 'query-string';
-// export class AuthwareBaseError extends Error {
-//   // short error description
-//   error: string;
-//   // long-string to describe this error
-//   description?: string;
-//   // web page that describes this error
-//   uri?: string;
-//   constructor(error: string, description?: string, uri?: string) {
-//     super(`${error}: ${description}`);
-//     this.uri = uri;
-//     this.error = error;
-//     this.description = description;
-//   }
-// }
-//
-// export class AuthwareHttpError extends AuthwareBaseError {
-//   status: number;
-//   constructor(error: string, description?: string, uri?: string, status = 400) {
-//     super(error, description, uri);
-//     this.status = status;
-//   }
-//
-//   getBody(): { [key: string]: string } {
-//     const errorBody: { [key: string]: string } = { error: this.error };
-//     if (this.description) {
-//       errorBody.error_description = this.description;
-//     }
-//     if (this.uri) {
-//       errorBody.error_uri = this.uri;
-//     }
-//     return errorBody;
-//   }
-// }
-//
-// export class OAuth2Error extends AuthwareHttpError {
-//   redirectUri?: string;
-//   redirectFragment?: boolean;
-//   constructor(
-//     error: string,
-//     description?: string,
-//     uri?: string,
-//     status = 400,
-//     redirectUri?: string,
-//     redirectFragment = false,
-//   ) {
-//     super(error, description, uri, status);
-//     this.redirectUri = redirectUri;
-//     this.redirectFragment = redirectFragment;
-//   }
-//
-//   getBody(): { [p: string]: string } {
-//     const body = super.getBody();
-//     if (this.redirectUri) {
-//       body.redirect_uri = this.redirectUri;
-//     }
-//     return body;
-//   }
-// }
 
 export enum ErrorName {
   INSECURE_TRANSPORT,
@@ -74,7 +16,7 @@ export enum ErrorName {
   MISMATCHING_STATE,
 }
 
-const errors: {
+const oauth2Errors: {
   [key in ErrorName]: {
     error: string;
     description?: string;
@@ -171,7 +113,7 @@ export class OAuth2Error extends Error {
   state?: string;
   redirectUri?: string;
   constructor(error: ErrorName, state?: string, redirectUri?: string) {
-    const e = errors[error];
+    const e = oauth2Errors[error];
     super(`${e.error}: ${e.description}`);
     this.error = e.error;
     this.description = e.description;

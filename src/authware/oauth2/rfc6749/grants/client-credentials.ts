@@ -1,7 +1,20 @@
 import { Grant } from './base';
-import { OAuth2Request, OAuth2Response } from '../server';
+import {
+  GrantType,
+  OAuth2Request,
+  OAuth2Response,
+  ResponseType,
+} from '../common';
 
 export class ClientCredentialsGrant extends Grant {
+  canHandleResponseType(): ResponseType | false {
+    return false;
+  }
+
+  canHandleGrantType(): GrantType | false {
+    return GrantType.CLIENT_CREDENTIALS;
+  }
+
   authorize(request: OAuth2Request, response: OAuth2Response) {
     throw new Error(
       'A bug: client credentials grant should not request authorization endpoint',
@@ -45,14 +58,13 @@ export class ClientCredentialsGrant extends Grant {
   //  }
   token(request: OAuth2Request, response: OAuth2Response) {
     super.verifyTokenEndpointHttpMethod(request);
-    const clientId = this.server.clientAuthentication.authenticateClient(
-      request,
-    );
+    const client = this.server.authenticateClient0(request);
+    const clientId = client.clientId;
 
     response.sendJson({
-      access_token: this.server.generateToken(clientId, ''),
+      access_token: client.generateAccessToken(),
       token_type: 'Bearer',
-      expires_in: String(this.server.tokenExpires(request.query.clientId)),
+      expires_in: client.tokenExpires,
     });
   }
 }
